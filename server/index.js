@@ -1,7 +1,12 @@
 const express = require('express');
+const cors = require('cors');
 const mongoose = require('mongoose');
 const { createServer } = require('node:http');
 const { Server } = require('socket.io');
+
+//models
+const User = require('./models/User');
+const Chat = require('./models/Chat');
 
 const app = express();
 const port = 3000;
@@ -15,13 +20,15 @@ const io = new Server(server,
 );
 
 app.use(express.json());
+app.use(cors());
 
-mongoose.connect("mongodb://10.255.255.254:27017/chat-app")
+mongoose.connect("mongodb://localhost:27017/chat-app")
     .then(() => console.log("DB connection Successful"))
-    .catch((err) => console.log("Db connection Unsuccesful"));
+    .catch((err) => console.log("Db connection Unsuccesful", err));
 
-app.get('/', (req, res) => {
-  res.send('Hello World!');
+app.get('/api/users', async (req, res) => {
+    const users = await User.find();
+    res.json(users);
 })
 
 io.on('connection', (socket) => {

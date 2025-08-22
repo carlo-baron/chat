@@ -11,25 +11,3 @@ html, body{
     height: 100%;
 }
 
-.container{
-    position: relative;
-    height: 100%;
-}
-
-.messages{
-    font-size: 1.5rem;
-}
-
-.user-input{
-    position: absolute;
-    bottom: 0;
-
-    height: 10vh;
-    width: 100%;
-
-    display: flex;
-}
-
-.user-input input{
-    flex-grow: 1;
-}

@@ -1,0 +1,26 @@
+.container{
+    position: relative;
+    height: 100%;
+}
+
+.messages{
+    font-size: 1.5rem;
+}
+
+.userInput{
+    position: absolute;
+    bottom: 0;
+
+    height: 10vh;
+    width: 100%;
+
+    display: flex;
+}
+
+.messageInput{
+    flex-grow: 1;
+}
+
+.messageSubmit{
+    width: 20%;
+}
