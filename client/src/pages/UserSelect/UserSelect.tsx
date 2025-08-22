@@ -11,6 +11,7 @@ function Users({userName, onClick} : {userName: string; onClick: () => void}){
 }
 
 type User = {
+    _id: string,
     name: string,
     inUse: boolean
 };
@@ -27,7 +28,14 @@ export default function UserSelect(){
     }, []);
 
     function onUserClick(user: User){
-        navigate(`/chat`);
+        fetch(`${server}/api/users/${user._id}`, {
+            method: 'PUT',
+        })
+            .then(res => res.json())
+            .then(data => {
+                setUsers(prev => prev.filter(u => u._id !== user._id));
+                console.log(data);
+            });
     }
 
     const mappedUsers = users.map(user => {

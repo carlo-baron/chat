@@ -27,9 +27,18 @@ mongoose.connect("mongodb://localhost:27017/chat-app")
     .catch((err) => console.log("Db connection Unsuccesful", err));
 
 app.get('/api/users', async (req, res) => {
-    const users = await User.find();
+    const users = await User.find({inUse: false});
     res.json(users);
 })
+
+app.put('/api/users/:id', async (req, res) => {
+    const { id } = req.params;
+    const updatedUser = await User.findByIdAndUpdate(id, {inUse: true}, {new: true});
+    if(updatedUser){
+        res.json(`User ${updatedUser.name} now in use`);
+    }
+    res.json(`Unsuccesful user selection`);
+});
 
 io.on('connection', (socket) => {
     socket.on('message', (msg) => {
