@@ -28,14 +28,7 @@ export default function UserSelect(){
     }, []);
 
     function onUserClick(user: User){
-        fetch(`${server}/api/users/${user._id}`, {
-            method: 'PUT',
-        })
-            .then(res => res.json())
-            .then(data => {
-                setUsers(prev => prev.filter(u => u._id !== user._id));
-                navigate(`chat/${data._id}`);
-            });
+        navigate(`chat/${user._id}`);
     }
 
     const mappedUsers = users.map(user => {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { io } from "socket.io-client";
-import { useParams } from 'react-router';
+import { useParams, useNavigate } from 'react-router';
 import styles from './ChatRoom.module.css';
 
 const server = "http://localhost:3000";
@@ -17,7 +17,7 @@ export default function ChatRoom(){
   const [input, setInput] = useState("");
   const [currentUser, setCurrentUser] = useState<User>();
   const { id } = useParams();
-  console.log(id);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const socket = io(server);
@@ -35,13 +35,20 @@ export default function ChatRoom(){
     fetch(`${server}/api/users/${id}`)
         .then(res => res.json())
         .then(data => {
-            console.log(data);
-            setCurrentUser(data)
+            if(data.inUse){
+                navigate('/');
+            }else{
+                fetch(`${server}/api/users/${id}`, {
+                    method: 'PUT'
+                })
+                    .then(res => res.json())
+                    .then(data => setCurrentUser(data));
+            }
         })
         .catch(err => console.log("Server Error:", err));
 
     return () => socket.close();
-  }, [id]);
+  }, []);
 
   const sendMessage = () => {
     if (socket && input.trim()) {
