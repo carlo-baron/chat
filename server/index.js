@@ -31,11 +31,19 @@ app.get('/api/users', async (req, res) => {
     res.json(users);
 })
 
+app.get('/api/users/:id', async (req, res) => {
+    const { id } = req.params;
+    const user = await User.findById(id);
+    res.json(user);
+})
+
 app.put('/api/users/:id', async (req, res) => {
     const { id } = req.params;
-    const updatedUser = await User.findByIdAndUpdate(id, {inUse: true}, {new: true});
-    if(updatedUser){
-        res.json(`User ${updatedUser.name} now in use`);
+    const user = await User.findById(id);
+    if(user){
+        user.inUse = !user.inUse;
+        user.save();
+        res.json(user);
     }
     res.json(`Unsuccesful user selection`);
 });

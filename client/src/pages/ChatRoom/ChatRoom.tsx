@@ -1,13 +1,23 @@
 import { useEffect, useState } from "react";
 import { io } from "socket.io-client";
+import { useParams } from 'react-router';
 import styles from './ChatRoom.module.css';
 
 const server = "http://localhost:3000";
+
+type User = {
+    _id: string,
+    name: string,
+    inUse: boolean
+};
 
 export default function ChatRoom(){
   const [socket, setSocket] = useState(null);
   const [messages, setMessages] = useState<string[]>([]);
   const [input, setInput] = useState("");
+  const [currentUser, setCurrentUser] = useState<User>();
+  const { id } = useParams();
+  console.log(id);
 
   useEffect(() => {
     const socket = io(server);
@@ -22,12 +32,21 @@ export default function ChatRoom(){
       setMessages((prev) => [...prev, msg]);
     });
 
+    fetch(`${server}/api/users/${id}`)
+        .then(res => res.json())
+        .then(data => {
+            console.log(data);
+            setCurrentUser(data)
+        })
+        .catch(err => console.log("Server Error:", err));
+
     return () => socket.close();
-  }, []);
+  }, [id]);
 
   const sendMessage = () => {
     if (socket && input.trim()) {
-      socket.emit("message", input);
+        const message = `${currentUser.name}: ` + input;
+      socket.emit("message", message);
       setInput("");
     }
   };

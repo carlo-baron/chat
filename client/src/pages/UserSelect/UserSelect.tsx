@@ -34,7 +34,7 @@ export default function UserSelect(){
             .then(res => res.json())
             .then(data => {
                 setUsers(prev => prev.filter(u => u._id !== user._id));
-                console.log(data);
+                navigate(`chat/${data._id}`);
             });
     }
 

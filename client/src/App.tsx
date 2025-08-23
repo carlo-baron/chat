@@ -8,7 +8,7 @@ function App() {
     return(
         <Routes>
             <Route path='/' index element={<UserSelect />} />
-            <Route path='/chat' index element={<ChatRoom />} />
+            <Route path='chat/:id' index element={<ChatRoom />} />
         </Routes>
     );
 }
