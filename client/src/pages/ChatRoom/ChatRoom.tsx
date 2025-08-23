@@ -1,58 +1,83 @@
-import { useEffect, useState } from "react";
-import { io } from "socket.io-client";
+import { useEffect, useState, useRef } from "react";
+import { io, Socket } from "socket.io-client";
 import { useParams, useNavigate } from 'react-router';
 import styles from './ChatRoom.module.css';
 
 const server = "http://localhost:3000";
 
 type User = {
-    _id: string,
-    name: string,
-    inUse: boolean
+  _id: string,
+  name: string,
+  inUse: boolean,
+  socketId?: string | null
 };
 
 export default function ChatRoom(){
-  const [socket, setSocket] = useState(null);
+  const [socket, setSocket] = useState<Socket | null>(null);
   const [messages, setMessages] = useState<string[]>([]);
   const [input, setInput] = useState("");
-  const [currentUser, setCurrentUser] = useState<User>();
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const { id } = useParams();
   const navigate = useNavigate();
+  const ownedRef = useRef(false);
 
   useEffect(() => {
-    const socket = io(server);
-    setSocket(socket);
+    if (!id) { navigate('/'); return; }
 
-    socket.on('server', (msg) => {
-        const serverMessage: string = `Server: ${msg}`;
-        setMessages((prev) => [...prev, serverMessage]);
-    });
+    let s: Socket | null = null;
 
-    socket.on("message", (msg) => {
-      setMessages((prev) => [...prev, msg]);
-    });
+    (async () => {
+      try {
+        s = io(server, { query: { userId: id } });
+        setSocket(s);
 
-    fetch(`${server}/api/users/${id}`)
-        .then(res => res.json())
-        .then(data => {
-            if(data.inUse){
-                navigate('/');
-            }else{
-                fetch(`${server}/api/users/${id}`, {
-                    method: 'PUT'
-                })
-                    .then(res => res.json())
-                    .then(data => setCurrentUser(data));
+        s.on("message", (msg: string) => {
+          setMessages((prev) => [...prev, msg]);
+        });
+
+        s.on("connect", async () => {
+          try {
+            const res = await fetch(`${server}/api/users/${id}/select`, {
+              method: 'PUT',
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ socketId: s!.id })
+            });
+
+            if (!res.ok) {
+              navigate('/');
+              s!.disconnect();
+              return;
             }
-        })
-        .catch(err => console.log("Server Error:", err));
 
-    return () => socket.close();
-  }, []);
+            const data: User = await res.json();
+            ownedRef.current = true;
+            setCurrentUser(data);
+          } catch (e) {
+            navigate('/');
+            s!.disconnect();
+          }
+        });
+
+        s.on('server', (m: string) => {
+          navigate('/');
+          s?.disconnect();
+        });
+
+      } catch (err) {
+        console.error("Init error:", err);
+        navigate('/');
+        if (s) s.disconnect();
+      }
+    })();
+
+    return () => {
+      if (s) s.disconnect();
+    };
+  }, [id, navigate]);
 
   const sendMessage = () => {
-    if (socket && input.trim()) {
-        const message = `${currentUser.name}: ` + input;
+    if (socket && input.trim() && currentUser) {
+      const message = `${currentUser.name}: ${input}`;
       socket.emit("message", message);
       setInput("");
     }
@@ -62,17 +87,21 @@ export default function ChatRoom(){
     <div className={styles.container}>
       <div className={styles.messages}>
         {messages.map((m, i) => (
-          <p style={{background: i%2==0 ? ("white") : ("gray") }}key={i}>{m}</p>
+          <p style={{ background: i % 2 === 0 ? "white" : "gray" }} key={i}>
+            {m}
+          </p>
         ))}
       </div>
       <div className={styles.userInput}>
-          <input
-            className={styles.messageInput}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Type message..."
-          />
-          <button className={styles.messageSubmit} onClick={sendMessage}>Send</button>
+        <input
+          className={styles.messageInput}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Type message..."
+        />
+        <button className={styles.messageSubmit} onClick={sendMessage}>
+          Send
+        </button>
       </div>
     </div>
   );
