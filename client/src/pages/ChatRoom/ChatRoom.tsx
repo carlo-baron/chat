@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { io, Socket } from "socket.io-client";
 import { useParams, useNavigate } from 'react-router';
 import styles from './ChatRoom.module.css';
@@ -8,76 +8,64 @@ const server = "http://localhost:3000";
 type User = {
   _id: string,
   name: string,
-  inUse: boolean,
-  socketId?: string | null
+  inUse: boolean
+};
+
+type Chat = {
+    sender: User,
+    message: string
 };
 
 export default function ChatRoom(){
   const [socket, setSocket] = useState<Socket | null>(null);
-  const [messages, setMessages] = useState<string[]>([]);
+  const [messages, setMessages] = useState<Chat[]>([]);
   const [input, setInput] = useState("");
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const { id } = useParams();
   const navigate = useNavigate();
-  const ownedRef = useRef(false);
 
   useEffect(() => {
     if (!id) { navigate('/'); return; }
 
-    let s: Socket | null = null;
+    let socket: Socket | null = null;
 
     (async () => {
-      try {
-        s = io(server, { query: { userId: id } });
-        setSocket(s);
+      socket = io(server, { query: { userId: id } });
+      setSocket(socket);
 
-        s.on("message", (msg: string) => {
-          setMessages((prev) => [...prev, msg]);
+      socket.on("message", (chat: Chat) => {
+        setMessages((prev) => [...prev, chat]);
+      });
+
+      socket.on("connect", async () => {
+        const res = await fetch(`${server}/api/users/${id}`, {
+          method: 'PUT'
         });
 
-        s.on("connect", async () => {
-          try {
-            const res = await fetch(`${server}/api/users/${id}/select`, {
-              method: 'PUT',
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ socketId: s!.id })
-            });
-
-            if (!res.ok) {
-              navigate('/');
-              s!.disconnect();
-              return;
-            }
-
-            const data: User = await res.json();
-            ownedRef.current = true;
-            setCurrentUser(data);
-          } catch (e) {
-            navigate('/');
-            s!.disconnect();
-          }
-        });
-
-        s.on('server', (m: string) => {
+        if (!res.ok) {
           navigate('/');
-          s?.disconnect();
-        });
+          socket!.disconnect();
+          return;
+        }
 
-      } catch (err) {
-        console.error("Init error:", err);
+        const data: User = await res.json();
+        setCurrentUser(data);
+      });
+
+      socket.on('server', (m: string) => {
         navigate('/');
-        if (s) s.disconnect();
-      }
+        socket?.disconnect();
+      });
     })();
 
     return () => {
-      if (s) s.disconnect();
+      if (socket) socket.disconnect();
     };
   }, [id, navigate]);
 
   const sendMessage = () => {
     if (socket && input.trim() && currentUser) {
-      const message = `${currentUser.name}: ${input}`;
+      const message = input;
       socket.emit("message", message);
       setInput("");
     }
@@ -88,7 +76,7 @@ export default function ChatRoom(){
       <div className={styles.messages}>
         {messages.map((m, i) => (
           <p style={{ background: i % 2 === 0 ? "white" : "gray" }} key={i}>
-            {m}
+            {m.sender.name + ": " + m.message}
           </p>
         ))}
       </div>

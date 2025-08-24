@@ -32,17 +32,12 @@ app.get('/api/users/:id', async (req, res) => {
   res.json(user);
 });
 
-app.put('/api/users/:id/select', async (req, res) => {
+app.put('/api/users/:id', async (req, res) => {
   const { id } = req.params;
-  const { socketId } = req.body;
-
-  if (!socketId) {
-    return res.status(400).json({ message: "socketId required" });
-  }
 
   const user = await User.findOneAndUpdate(
-    { _id: id, $or: [{ inUse: false }, { socketId }] },
-    { inUse: true, socketId },
+    { _id: id, inUse: false },
+    { inUse: true },
     { new: true }
   );
 
@@ -57,10 +52,12 @@ io.on('connection', async (socket) => {
   const userId = socket.handshake.query.userId;
   console.log(`User ${userId} connected (socket ${socket.id})`);
 
+
+    let user;
   if (userId) {
     try {
-      const u = await User.findById(userId);
-      if (u && u.inUse && u.socketId && u.socketId !== socket.id) {
+      user = await User.findById(userId);
+      if (user && user.inUse) {
         socket.emit('server', 'User already in use');
         socket.disconnect(true);
         return;
@@ -73,22 +70,24 @@ io.on('connection', async (socket) => {
 
   socket.on('message', (msg) => {
     console.log("message received:", msg);
-    io.emit("message", msg);
+    const newChat = new Chat({
+            sender: user,
+            message: msg
+        });
+    io.emit("message", newChat);
   });
 
   socket.on('disconnect', async () => {
     console.log(`socket ${socket.id} disconnected`);
     if (userId) {
       const updated = await User.findOneAndUpdate(
-        { _id: userId, socketId: socket.id },
-        { inUse: false, socketId: null },
+        { _id: userId },
+        { inUse: false },
         { new: true }
       );
 
       if (updated) {
-        console.log(`User with id ${userId} has been reset (owner socket ${socket.id})`);
-      } else {
-        console.log(`No reset: socket ${socket.id} did not own user ${userId}`);
+        console.log(`User with id ${userId} has been reset`);
       }
     }
   });
