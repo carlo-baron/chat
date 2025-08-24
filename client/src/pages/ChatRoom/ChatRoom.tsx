@@ -47,7 +47,9 @@ export default function ChatRoom(){
     })();
 
     return () => {
-      if (socket) socket.disconnect();
+      if (socket) {
+          socket.disconnect();
+      };
     };
   }, [id, navigate]);
 

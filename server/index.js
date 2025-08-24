@@ -6,6 +6,7 @@ const { Server } = require('socket.io');
 
 const User = require('./models/User');
 const Chat = require('./models/Chat');
+const Room = require('./models/Room');
 
 const app = express();
 const port = 3000;
@@ -38,6 +39,8 @@ app.get('/api/chats', async (req, res) => {
     res.json(chats);
 });
 
+const connectedUsers = new Set();
+
 io.on('connection', async (socket) => {
   const userId = socket.handshake.query.userId;
   console.log(`User ${userId} connected (socket ${socket.id})`);
@@ -53,6 +56,7 @@ io.on('connection', async (socket) => {
         return;
       }else if(user && !user.inUse){
             user.inUse = true;
+                connectedUsers.add(user);
                 user.save();
         }
     } catch (e) {
@@ -73,6 +77,13 @@ io.on('connection', async (socket) => {
 
   socket.on('disconnect', async () => {
     console.log(`socket ${socket.id} disconnected`);
+
+    connectedUsers.delete(user);
+
+    if(connectedUsers.size <= 0){
+        await Chat.deleteMany({}); 
+    }
+
     if (userId) {
       const updated = await User.findOneAndUpdate(
         { _id: userId },
