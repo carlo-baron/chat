@@ -26,6 +26,10 @@ export default function ChatRoom(){
   useEffect(() => {
     if (!id) { navigate('/'); return; }
 
+    fetch(`${server}/api/chats`)
+        .then(res => res.json())
+        .then(data => setMessages(data));
+
     let socket: Socket | null = null;
 
     (async () => {

@@ -32,6 +32,12 @@ app.get('/api/users/:id', async (req, res) => {
   res.json(user);
 });
 
+app.get('/api/chats', async (req, res) => {
+    const chats = await Chat.find()
+        .populate('sender');
+    res.json(chats);
+});
+
 io.on('connection', async (socket) => {
   const userId = socket.handshake.query.userId;
   console.log(`User ${userId} connected (socket ${socket.id})`);
