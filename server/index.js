@@ -32,22 +32,6 @@ app.get('/api/users/:id', async (req, res) => {
   res.json(user);
 });
 
-app.put('/api/users/:id', async (req, res) => {
-  const { id } = req.params;
-
-  const user = await User.findOneAndUpdate(
-    { _id: id, inUse: false },
-    { inUse: true },
-    { new: true }
-  );
-
-  if (!user) {
-    return res.status(409).json({ message: "User already in use" });
-  }
-
-  return res.json(user);
-});
-
 io.on('connection', async (socket) => {
   const userId = socket.handshake.query.userId;
   console.log(`User ${userId} connected (socket ${socket.id})`);
@@ -61,7 +45,10 @@ io.on('connection', async (socket) => {
         socket.emit('server', 'User already in use');
         socket.disconnect(true);
         return;
-      }
+      }else if(user && !user.inUse){
+            user.inUse = true;
+                user.save();
+        }
     } catch (e) {
       socket.disconnect(true);
       return;
@@ -75,6 +62,7 @@ io.on('connection', async (socket) => {
             message: msg
         });
     io.emit("message", newChat);
+    newChat.save();
   });
 
   socket.on('disconnect', async () => {

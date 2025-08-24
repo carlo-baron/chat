@@ -20,7 +20,6 @@ export default function ChatRoom(){
   const [socket, setSocket] = useState<Socket | null>(null);
   const [messages, setMessages] = useState<Chat[]>([]);
   const [input, setInput] = useState("");
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -37,21 +36,6 @@ export default function ChatRoom(){
         setMessages((prev) => [...prev, chat]);
       });
 
-      socket.on("connect", async () => {
-        const res = await fetch(`${server}/api/users/${id}`, {
-          method: 'PUT'
-        });
-
-        if (!res.ok) {
-          navigate('/');
-          socket!.disconnect();
-          return;
-        }
-
-        const data: User = await res.json();
-        setCurrentUser(data);
-      });
-
       socket.on('server', (m: string) => {
         navigate('/');
         socket?.disconnect();
@@ -64,7 +48,7 @@ export default function ChatRoom(){
   }, [id, navigate]);
 
   const sendMessage = () => {
-    if (socket && input.trim() && currentUser) {
+    if (socket && input.trim()) {
       const message = input;
       socket.emit("message", message);
       setInput("");
