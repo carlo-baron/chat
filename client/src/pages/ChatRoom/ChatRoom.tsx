@@ -1,20 +1,9 @@
 import { useEffect, useState } from "react";
 import { io, Socket } from "socket.io-client";
 import { useParams, useNavigate } from 'react-router';
+import { server } from '../../lib/consts';
+import type { Chat } from '../../lib/types';
 import styles from './ChatRoom.module.css';
-
-const server = "http://localhost:3000";
-
-type User = {
-  _id: string,
-  name: string,
-  inUse: boolean
-};
-
-type Chat = {
-    sender: User,
-    message: string
-};
 
 export default function ChatRoom(){
   const [socket, setSocket] = useState<Socket | null>(null);

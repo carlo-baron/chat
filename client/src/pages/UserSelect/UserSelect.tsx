@@ -1,20 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
+import { server } from '../../lib/consts';
+import type { User } from '../../lib/types';
 import styles from './UserSelect.module.css';
 
-const server = "http://localhost:3000";
 
-function Users({userName, onClick} : {userName: string; onClick: () => void}){
+function Users({user, onClick} : {user: User; onClick: () => void}){
     return(
-        <button onClick={onClick}>{userName}</button>
+        <button onClick={onClick}>{user.name}</button>
     );
 }
-
-type User = {
-    _id: string,
-    name: string,
-    inUse: boolean
-};
 
 export default function UserSelect(){
     const [users, setUsers] = useState<User[]>([]);
@@ -28,13 +23,17 @@ export default function UserSelect(){
     }, []);
 
     function onUserClick(user: User){
-        navigate(`chat/${user._id}`);
+        sessionStorage.setItem("User", JSON.stringify(user));
+        const myUser = sessionStorage.getItem("User");
+        if(!myUser) return;
+        navigate(`room`);
     }
 
     const mappedUsers = users.map(user => {
         return(
             <Users
-                userName={user.name}
+                key={user._id}
+                user={user}
                 onClick={() => onUserClick(user)}
             />
         );

@@ -39,6 +39,12 @@ app.get('/api/chats', async (req, res) => {
     res.json(chats);
 });
 
+app.get('/api/rooms', async (req, res) => {
+    const rooms = await Room.find()
+        .populate('users');
+    res.json(rooms);
+});
+
 const connectedUsers = new Set();
 
 io.on('connection', async (socket) => {
