@@ -1,28 +1,64 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router';
 import { server } from '../../lib/consts';
-import type { Room } from '../../lib/types';
+import type { Room, User } from '../../lib/types';
+import styles from './RoomSelect.module.css';
 
 function Rooms({rooms} : {rooms: Room[]}){
-    if (rooms.length <= 0) return <h1>No rooms available</h1>
+    if (rooms.length <= 0) return <h3>No rooms available</h3>
     return rooms.map(room => {
         return (
-            <input type="button" value={room.name}/>
+            <div className="rooms-container" key={room._id}>
+                <label htmlFor="room">Room: </label>
+                <input name="room" type="button" value={room.name}/>
+            </div>
         );
     });
 }
 
 export default function RoomSelect(){
     const [rooms, setRooms] = useState<Room[]>([]);
+    const [user, setUser] = useState<User>();
+    const navigate = useNavigate();
+
     useEffect(() => {
         fetch(`${server}/api/rooms`)
             .then(res => res.json())
             .then(data => setRooms(data));
-    }, []);
+
+        const sessionUser = sessionStorage.getItem("User");
+
+        if(!sessionUser) {
+            navigate('/');
+        }else{
+            setUser(JSON.parse(sessionUser));
+        }
+
+    }, [navigate]);
+
+    function makeRoom(){
+        fetch(`${server}/api/rooms`, {
+            method: 'POST',
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                user: user
+            })
+        })
+            .then(res => res.json())
+            .then(data => {
+                console.log(data);
+                setRooms(prev => [...prev, data])
+            }); 
+    }
+
 
     return(
-        <>
+        <div className={styles.container}>
+            <h1>Rooms</h1>
             <Rooms rooms={rooms}/>
-            <button>Create Room</button>
-        </>
+            <button onClick={makeRoom}>Create Room</button>
+        </div>
     );
 }

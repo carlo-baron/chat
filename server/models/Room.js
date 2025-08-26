@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const roomSchema = new mongoose.Schema({
+    creator_id: String,
     name: String,
     users: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User'}],
     maxSize: { type: Number, default: 2 }

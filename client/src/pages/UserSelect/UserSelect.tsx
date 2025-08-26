@@ -16,6 +16,7 @@ export default function UserSelect(){
     const navigate = useNavigate();
 
     useEffect(() => {
+        sessionStorage.clear();
         fetch(`${server}/api/users`)
             .then(res => res.json())
             .then(data => setUsers(data))
@@ -24,8 +25,6 @@ export default function UserSelect(){
 
     function onUserClick(user: User){
         sessionStorage.setItem("User", JSON.stringify(user));
-        const myUser = sessionStorage.getItem("User");
-        if(!myUser) return;
         navigate(`room`);
     }
 

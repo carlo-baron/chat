@@ -45,6 +45,20 @@ app.get('/api/rooms', async (req, res) => {
     res.json(rooms);
 });
 
+app.post('/api/rooms', async (req, res) => {
+    const body = req.body;
+    const count = await Room.countDocuments({ creator_id: body.user._id });
+    const newRoom = new Room({
+        creator_id: body.user._id,
+        name: body.user.name + (count + 1),
+        users: [body.user],
+        maxSize: body.maxSize || 2 
+    });
+
+    newRoom.save();
+    res.json(newRoom);
+});
+
 const connectedUsers = new Set();
 
 io.on('connection', async (socket) => {
