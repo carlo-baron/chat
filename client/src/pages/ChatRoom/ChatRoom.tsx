@@ -9,11 +9,11 @@ export default function ChatRoom(){
   const [socket, setSocket] = useState<Socket | null>(null);
   const [messages, setMessages] = useState<Chat[]>([]);
   const [input, setInput] = useState("");
-  const { id } = useParams();
+  const { roomName } = useParams();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!id) { navigate('/'); return; }
+    if (!roomName) { navigate('room'); return; }
 
     fetch(`${server}/api/chats`)
         .then(res => res.json())
@@ -22,7 +22,7 @@ export default function ChatRoom(){
     let socket: Socket | null = null;
 
     (async () => {
-      socket = io(server, { query: { userId: id } });
+      socket = io(server, { query: { userId: roomName } });
       setSocket(socket);
 
       socket.on("message", (chat: Chat) => {
@@ -30,7 +30,7 @@ export default function ChatRoom(){
       });
 
       socket.on('server', (m: string) => {
-        navigate('/');
+        navigate('rooms');
         socket?.disconnect();
       });
     })();
@@ -40,7 +40,7 @@ export default function ChatRoom(){
           socket.disconnect();
       };
     };
-  }, [id, navigate]);
+  }, [roomName, navigate]);
 
   const sendMessage = () => {
     if (socket && input.trim()) {

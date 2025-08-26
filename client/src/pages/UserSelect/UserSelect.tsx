@@ -25,7 +25,7 @@ export default function UserSelect(){
 
     function onUserClick(user: User){
         sessionStorage.setItem("User", JSON.stringify(user));
-        navigate(`room`);
+        navigate(`rooms`);
     }
 
     const mappedUsers = users.map(user => {
