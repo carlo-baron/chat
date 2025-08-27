@@ -12,25 +12,25 @@ const app = express();
 const port = 3000;
 const server = createServer(app);
 const io = new Server(server, {
-  cors: { origin: "http://localhost:5173" }
+    cors: { origin: "http://localhost:5173" }
 });
 
 app.use(express.json());
 app.use(cors());
 
 mongoose.connect("mongodb://localhost:27017/chat-app")
-  .then(() => console.log("DB connection Successful"))
-  .catch((err) => console.log("Db connection Unsuccessful", err));
+    .then(() => console.log("DB connection Successful"))
+    .catch((err) => console.log("Db connection Unsuccessful", err));
 
 app.get('/api/users', async (req, res) => {
-  const users = await User.find({ inUse: false });
-  res.json(users);
+    const users = await User.find({ inUse: false });
+    res.json(users);
 });
 
 app.get('/api/users/:id', async (req, res) => {
-  const { id } = req.params;
-  const user = await User.findById(id);
-  res.json(user);
+    const { id } = req.params;
+    const user = await User.findById(id);
+    res.json(user);
 });
 
 app.get('/api/chats', async (req, res) => {
@@ -62,62 +62,68 @@ app.post('/api/rooms', async (req, res) => {
 const connectedUsers = new Set();
 
 io.on('connection', async (socket) => {
-  const userId = socket.handshake.query.userId;
-  console.log(`User ${userId} connected (socket ${socket.id})`);
-
+    const userId = socket.handshake.query.userId;
+    const room = socket.handshake.query.room;
+    console.log(`User ${userId} connected (socket ${socket.id})`);
 
     let user;
-  if (userId) {
-    try {
-      user = await User.findById(userId);
-      if (user && user.inUse) {
-        socket.emit('server', 'User already in use');
-        socket.disconnect(true);
-        return;
-      }else if(user && !user.inUse){
-            user.inUse = true;
+    if (userId) {
+        try {
+            user = await User.findById(userId);
+            if (user && user.inUse) {
+                socket.emit('server', 'User already in use');
+                socket.disconnect(true);
+                return;
+            }else if(user && !user.inUse){
+                user.inUse = true;
                 connectedUsers.add(user);
                 user.save();
+            }
+        } catch (e) {
+            socket.disconnect(true);
+            return;
         }
-    } catch (e) {
-      socket.disconnect(true);
-      return;
     }
-  }
 
-  socket.on('message', (msg) => {
-    console.log("message received:", msg);
-    const newChat = new Chat({
+    socket.join(room);
+    const roomObj = await Room.findOne({ name: room });
+    if(roomObj.users.includes(user)) return;
+    roomObj.users.push(user);
+
+    socket.on(`${room}:message`, (msg) => {
+        console.log("message received:", msg);
+        const newChat = new Chat({
             sender: user,
             message: msg
         });
-    io.emit("message", newChat);
-    newChat.save();
-  });
+        io.to(room).emit(`${room}:message`, newChat);
+        newChat.save();
+    });
 
-  socket.on('disconnect', async () => {
-    console.log(`socket ${socket.id} disconnected`);
+    socket.on('disconnect', async () => {
+        socket.leave(room);
+        console.log(`socket ${socket.id} disconnected`);
 
-    connectedUsers.delete(user);
+        connectedUsers.delete(user);
 
-    if(connectedUsers.size <= 0){
-        await Chat.deleteMany({}); 
-    }
+        if(connectedUsers.size <= 0){
+            await Chat.deleteMany({}); 
+        }
 
-    if (userId) {
-      const updated = await User.findOneAndUpdate(
-        { _id: userId },
-        { inUse: false },
-        { new: true }
-      );
+        if (userId) {
+            const updated = await User.findOneAndUpdate(
+                { _id: userId },
+                { inUse: false },
+                { new: true }
+            );
 
-      if (updated) {
-        console.log(`User with id ${userId} has been reset`);
-      }
-    }
-  });
+            if (updated) {
+                console.log(`User with id ${userId} has been reset`);
+            }
+        }
+    });
 });
 
 server.listen(port, () => {
-  console.log(`Example app listening on port ${port}`);
+    console.log(`Example app listening on port ${port}`);
 });

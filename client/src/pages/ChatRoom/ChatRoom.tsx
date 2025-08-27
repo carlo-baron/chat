@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { io, Socket } from "socket.io-client";
 import { useParams, useNavigate } from 'react-router';
 import { server } from '../../lib/consts';
-import type { Chat } from '../../lib/types';
+import type { Chat, User } from '../../lib/types';
 import styles from './ChatRoom.module.css';
 
 export default function ChatRoom(){
@@ -13,7 +13,9 @@ export default function ChatRoom(){
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!roomName) { navigate('room'); return; }
+    const user: User = JSON.parse(sessionStorage.getItem("User"));
+
+    if (!roomName || !user ) { navigate('/rooms'); return; }
 
     fetch(`${server}/api/chats`)
         .then(res => res.json())
@@ -22,10 +24,10 @@ export default function ChatRoom(){
     let socket: Socket | null = null;
 
     (async () => {
-      socket = io(server, { query: { userId: roomName } });
+      socket = io(server, { query: { userId: user._id, room: roomName } });
       setSocket(socket);
 
-      socket.on("message", (chat: Chat) => {
+      socket.on(`${roomName}:message`, (chat: Chat) => {
         setMessages((prev) => [...prev, chat]);
       });
 
@@ -45,7 +47,7 @@ export default function ChatRoom(){
   const sendMessage = () => {
     if (socket && input.trim()) {
       const message = input;
-      socket.emit("message", message);
+      socket.emit(`${roomName}:message`, message);
       setInput("");
     }
   };
