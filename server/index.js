@@ -59,8 +59,6 @@ app.post('/api/rooms', async (req, res) => {
     res.json(newRoom);
 });
 
-const connectedUsers = new Set();
-
 io.on('connection', async (socket) => {
     const userId = socket.handshake.query.userId;
     const room = socket.handshake.query.room;
@@ -76,7 +74,6 @@ io.on('connection', async (socket) => {
                 return;
             }else if(user && !user.inUse){
                 user.inUse = true;
-                connectedUsers.add(user);
                 user.save();
             }
         } catch (e) {
@@ -89,7 +86,7 @@ io.on('connection', async (socket) => {
     const roomObj = await Room.findOne({ name: room })
         .populate('users');
 
-    if(!roomObj.users.includes(user)){
+    if(!roomObj.users.includes(user) && !roomObj.users.length <= 2){
         roomObj.users.push(user);
         await roomObj.save();
     }
@@ -110,9 +107,7 @@ io.on('connection', async (socket) => {
             {new: true}
         );
 
-        connectedUsers.delete(user);
-
-        if(connectedUsers.size <= 0){
+        if(update.users.length <= 0){
             await Chat.deleteMany({}); 
         }
 
