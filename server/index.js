@@ -59,36 +59,33 @@ app.post('/api/rooms', async (req, res) => {
     res.json(newRoom);
 });
 
+app.put('/api/user/select', async (req, res) => {
+    const body = req.body;
+    const user = await User.findOne({ _id: body.userId });
+
+    if(user){
+        user.inUse = body.inUse;
+        await user.save();
+        return res.json(user);
+    }
+});
+
 io.on('connection', async (socket) => {
     const userId = socket.handshake.query.userId;
     const room = socket.handshake.query.room;
     console.log(`User ${userId} connected`);
 
-    let user;
-    if (userId) {
-        try {
-            user = await User.findById(userId);
-            if (user && user.inUse) {
-                socket.emit('server', 'User already in use');
-                socket.disconnect(true);
-                return;
-            }else if(user && !user.inUse){
-                user.inUse = true;
-                user.save();
-            }
-        } catch (e) {
-            socket.disconnect(true);
-            return;
-        }
-    }
+    const user = await User.findById(userId);
 
     socket.join(room);
     const roomObj = await Room.findOne({ name: room })
         .populate('users');
 
-    if(!roomObj.users.includes(user) && !roomObj.users.length <= 2){
+    if(!roomObj.users.includes(user) || !roomObj.users.length <= 2){
         roomObj.users.push(user);
         await roomObj.save();
+    }else{
+        socket.disconnect(true); 
     }
 
     socket.on(`${room}:message`, (msg) => {
@@ -109,14 +106,6 @@ io.on('connection', async (socket) => {
 
         if(update.users.length <= 0){
             await Chat.deleteMany({}); 
-        }
-
-        if (userId) {
-            await User.findOneAndUpdate(
-                { _id: userId },
-                { inUse: false },
-                { new: true }
-            );
         }
 
         socket.leave(room);

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router';
 import { server } from '../../lib/consts';
 import type { User } from '../../lib/types';
@@ -11,20 +11,47 @@ function Users({user, onClick} : {user: User; onClick: () => void}){
     );
 }
 
+async function updateUser(userId: string, inUse: boolean){
+    fetch(`${server}/api/user/select`, {
+        method: 'PUT',
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            userId: userId,
+            inUse: inUse
+        })
+    })
+        .then(res => res.json())
+        .then(data => console.log(data.inUse));
+}
+
 export default function UserSelect(){
     const [users, setUsers] = useState<User[]>([]);
     const navigate = useNavigate();
 
     useEffect(() => {
-        sessionStorage.clear();
-        fetch(`${server}/api/users`)
-            .then(res => res.json())
-            .then(data => setUsers(data))
-            .catch(err => console.log(`Server Error: ${err}`));
+        const user = sessionStorage.getItem("User"); 
+
+        const init = async () => {
+            if(user){
+                const parsedUser = JSON.parse(user);
+                console.log("anything below this is inside useEffect");
+                await updateUser(parsedUser._id, false);
+            }
+
+            sessionStorage.clear();
+            fetch(`${server}/api/users`)
+                .then(res => res.json())
+                .then(data => setUsers(data))
+                .catch(err => console.log(`Server Error: ${err}`));
+        }
+
+        init();
+
     }, []);
 
-    function onUserClick(user: User){
+    async function onUserClick(user: User){
         sessionStorage.setItem("User", JSON.stringify(user));
+        await updateUser(user._id, true);
         navigate(`rooms`);
     }
 
