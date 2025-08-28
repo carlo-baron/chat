@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
@@ -9,16 +11,26 @@ const Chat = require('./models/Chat');
 const Room = require('./models/Room');
 
 const app = express();
-const port = 3000;
 const server = createServer(app);
+
+const allowedOrigins = [
+    "http://localhost:5173",
+    process.env.CORS_ORIGIN
+].filter(Boolean);
+
+app.use(cors({
+    origin: allowedOrigins,
+    credentials: true
+}));
+app.use(express.json());
+
 const io = new Server(server, {
-    cors: { origin: "http://localhost:5173" }
+    cors: { origin: allowedOrigins }
 });
 
-app.use(express.json());
-app.use(cors());
+app.get('/health', (req, res) => res.status(200).send('ok'));
 
-mongoose.connect("mongodb://localhost:27017/chat-app")
+mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log("DB connection Successful"))
     .catch((err) => console.log("Db connection Unsuccessful", err));
 
@@ -112,6 +124,7 @@ io.on('connection', async (socket) => {
     });
 });
 
-server.listen(port, () => {
-    console.log(`Example app listening on port ${port}`);
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`Example app listening on port ${PORT}`);
 });
