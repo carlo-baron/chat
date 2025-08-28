@@ -64,7 +64,7 @@ const connectedUsers = new Set();
 io.on('connection', async (socket) => {
     const userId = socket.handshake.query.userId;
     const room = socket.handshake.query.room;
-    console.log(`User ${userId} connected (socket ${socket.id})`);
+    console.log(`User ${userId} connected`);
 
     let user;
     if (userId) {
@@ -86,12 +86,15 @@ io.on('connection', async (socket) => {
     }
 
     socket.join(room);
-    const roomObj = await Room.findOne({ name: room });
-    if(roomObj.users.includes(user)) return;
-    roomObj.users.push(user);
+    const roomObj = await Room.findOne({ name: room })
+        .populate('users');
+
+    if(!roomObj.users.includes(user)){
+        roomObj.users.push(user);
+        await roomObj.save();
+    }
 
     socket.on(`${room}:message`, (msg) => {
-        console.log("message received:", msg);
         const newChat = new Chat({
             sender: user,
             message: msg
@@ -101,8 +104,11 @@ io.on('connection', async (socket) => {
     });
 
     socket.on('disconnect', async () => {
-        socket.leave(room);
-        console.log(`socket ${socket.id} disconnected`);
+        const update = await Room.findOneAndUpdate(
+            {_id: roomObj._id},
+            {$pull: {users: user._id}},
+            {new: true}
+        );
 
         connectedUsers.delete(user);
 
@@ -111,16 +117,14 @@ io.on('connection', async (socket) => {
         }
 
         if (userId) {
-            const updated = await User.findOneAndUpdate(
+            await User.findOneAndUpdate(
                 { _id: userId },
                 { inUse: false },
                 { new: true }
             );
-
-            if (updated) {
-                console.log(`User with id ${userId} has been reset`);
-            }
         }
+
+        socket.leave(room);
     });
 });
 

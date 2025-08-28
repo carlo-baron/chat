@@ -32,7 +32,7 @@ export default function ChatRoom(){
       });
 
       socket.on('server', (m: string) => {
-        navigate('rooms');
+        navigate('/rooms');
         socket?.disconnect();
       });
     })();
