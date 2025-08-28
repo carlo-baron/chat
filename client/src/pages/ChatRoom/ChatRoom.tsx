@@ -8,12 +8,16 @@ import styles from './ChatRoom.module.css';
 export default function ChatRoom(){
   const [socket, setSocket] = useState<Socket | null>(null);
   const [messages, setMessages] = useState<Chat[]>([]);
+  const [user, setUser] = useState<User>();
   const [input, setInput] = useState("");
   const { roomName } = useParams();
   const navigate = useNavigate();
 
   useEffect(() => {
-    const user: User = JSON.parse(sessionStorage.getItem("User"));
+    const sessionUser = sessionStorage.getItem("User");
+    if(sessionUser){
+        setUser(JSON.parse(sessionUser));
+    }
 
     if (!roomName || !user ) { navigate('/rooms'); return; }
 
@@ -31,18 +35,13 @@ export default function ChatRoom(){
         setMessages((prev) => [...prev, chat]);
       });
 
-      socket.on('server', (m: string) => {
-        navigate('/rooms');
-        socket?.disconnect();
-      });
     })();
-
     return () => {
       if (socket) {
           socket.disconnect();
       };
     };
-  }, [roomName, navigate]);
+  }, [roomName, user, navigate]);
 
   const sendMessage = () => {
     if (socket && input.trim()) {

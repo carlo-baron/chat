@@ -1,8 +1,8 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { server } from '../../lib/consts';
 import type { User } from '../../lib/types';
-import styles from './UserSelect.module.css';
+//import styles from './UserSelect.module.css';
 
 
 function Users({user, onClick} : {user: User; onClick: () => void}){
