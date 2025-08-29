@@ -22,10 +22,8 @@ export default function ChatRoom() {
 
   useEffect(() => {
       if (!roomName || !user) {
-        navigate('/rooms');
         return;
       }
-
 
     fetch(`${server}/api/chats`)
       .then(res => res.json())
@@ -35,10 +33,14 @@ export default function ChatRoom() {
     fetch(`${server}/health`).catch(console.error);
 
     const s = io(server, {
+        transports: ["websocket"],
       query: {
         userId: user._id,
         room: roomName
-      }
+      },
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
     });
 
     setSocket(s);

@@ -25,7 +25,15 @@ app.use(cors({
 app.use(express.json());
 
 const io = new Server(server, {
-    cors: { origin: allowedOrigins }
+    cors: { 
+        origin: (origin, callback) => {
+            if(!origin || allowedOrigins.includes(origin)){
+                return callback(null, true);
+            }
+            return callback(new Error("Not allowed by CORS"), false);
+        }, 
+        credentials: true
+    }
 });
 
 app.get('/health', (req, res) => res.status(200).send('ok'));
@@ -97,7 +105,6 @@ io.on('connection', async (socket) => {
         roomObj.users.push(user);
         await roomObj.save();
     }else{
-        console.log("dc'd just after joining");
         socket.disconnect(true); 
     }
 
@@ -111,7 +118,6 @@ io.on('connection', async (socket) => {
     });
 
     socket.on('disconnect', async () => {
-        console.log("dc actual");
         const update = await Room.findOneAndUpdate(
             {_id: roomObj._id},
             {$pull: {users: user._id}},
