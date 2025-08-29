@@ -5,48 +5,57 @@ import { server } from '../../lib/consts';
 import type { Chat, User } from '../../lib/types';
 import styles from './ChatRoom.module.css';
 
-export default function ChatRoom(){
+export default function ChatRoom() {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [messages, setMessages] = useState<Chat[]>([]);
-  const [user, setUser] = useState<User>();
+  const [user, setUser] = useState<User | null>(null);
   const [input, setInput] = useState("");
   const { roomName } = useParams();
   const navigate = useNavigate();
 
   useEffect(() => {
     const sessionUser = sessionStorage.getItem("User");
-    if(sessionUser){
-        setUser(JSON.parse(sessionUser));
+    if (sessionUser) {
+      setUser(JSON.parse(sessionUser));
     }
+  }, []);
 
-    if (!roomName || !user ) { navigate('/rooms'); return; }
+  useEffect(() => {
+      if (!roomName || !user) {
+        navigate('/rooms');
+        return;
+      }
+
 
     fetch(`${server}/api/chats`)
-        .then(res => res.json())
-        .then(data => setMessages(data));
+      .then(res => res.json())
+      .then(data => setMessages(data))
+      .catch(console.error);
 
-    let socket: Socket | null = null;
+    fetch(`${server}/health`).catch(console.error);
 
-    (async () => {
-      socket = io(server, { query: { userId: user._id, room: roomName } });
-      setSocket(socket);
+    const s = io(server, {
+      transports: ["websocket"],
+      query: {
+        userId: user._id,
+        room: roomName
+      }
+    });
 
-      socket.on(`${roomName}:message`, (chat: Chat) => {
-        setMessages((prev) => [...prev, chat]);
-      });
+    setSocket(s);
 
-    })();
+    s.on(`${roomName}:message`, (chat: Chat) => {
+      setMessages(prev => [...prev, chat]);
+    });
+
     return () => {
-      if (socket) {
-          socket.disconnect();
-      };
+      s.disconnect();
     };
   }, [roomName, user, navigate]);
 
   const sendMessage = () => {
     if (socket && input.trim()) {
-      const message = input;
-      socket.emit(`${roomName}:message`, message);
+      socket.emit(`${roomName}:message`, input.trim());
       setInput("");
     }
   };
