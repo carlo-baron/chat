@@ -48,7 +48,6 @@ export default function RoomSelect(){
         })
             .then(res => res.json())
             .then(data => {
-                console.log(data);
                 setRooms(prev => [...prev, data])
             }); 
     }

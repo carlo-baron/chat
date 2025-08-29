@@ -19,9 +19,7 @@ async function updateUser(userId: string, inUse: boolean){
             userId: userId,
             inUse: inUse
         })
-    })
-        .then(res => res.json())
-        .then(data => console.log(data.inUse));
+    });
 }
 
 export default function UserSelect(){
@@ -34,7 +32,6 @@ export default function UserSelect(){
         const init = async () => {
             if(user){
                 const parsedUser = JSON.parse(user);
-                console.log("anything below this is inside useEffect");
                 await updateUser(parsedUser._id, false);
             }
 
