@@ -97,6 +97,7 @@ io.on('connection', async (socket) => {
         roomObj.users.push(user);
         await roomObj.save();
     }else{
+        console.log("dc'd just after joining");
         socket.disconnect(true); 
     }
 
@@ -110,6 +111,7 @@ io.on('connection', async (socket) => {
     });
 
     socket.on('disconnect', async () => {
+        console.log("dc actual");
         const update = await Room.findOneAndUpdate(
             {_id: roomObj._id},
             {$pull: {users: user._id}},
