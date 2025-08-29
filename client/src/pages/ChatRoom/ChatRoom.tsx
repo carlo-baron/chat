@@ -35,7 +35,6 @@ export default function ChatRoom() {
     fetch(`${server}/health`).catch(console.error);
 
     const s = io(server, {
-      transports: ["websocket"],
       query: {
         userId: user._id,
         room: roomName
